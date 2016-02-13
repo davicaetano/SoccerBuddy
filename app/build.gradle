@@ -1,4 +1,6 @@
 apply plugin: 'com.android.application'
+apply plugin: 'com.neenbedankt.android-apt' //needed for source code generation
+apply plugin: 'com.google.gms.google-services'
 
 android {
     compileSdkVersion 23
@@ -11,6 +13,14 @@ android {
         versionCode 1
         versionName "1.0"
     }
+    signingConfigs {
+        debug {
+            storeFile file("soccer-buddy-key.keystore")
+            storePassword "sb0423"
+            keyAlias "soccer_buddy"
+            keyPassword "sb0502"
+        }
+    }
     buildTypes {
         release {
             minifyEnabled false
@@ -18,9 +28,25 @@ android {
         }
     }
 }
+repositories {
+    mavenCentral()
+    maven { url "https://jitpack.io" }
+}
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     testCompile 'junit:junit:4.12'
     compile 'com.android.support:appcompat-v7:23.1.1'
+    compile 'com.google.android.gms:play-services-auth:8.3.0'
+    compile 'com.jakewharton:butterknife:7.0.1'
+
+    compile "org.igniterealtime.smack:smack-android:4.1.0"
+    compile "org.igniterealtime.smack:smack-tcp:4.1.0"
+
+    compile 'com.facebook.android:facebook-android-sdk:[4,5)'
+
+    //Dagger
+    apt 'com.google.dagger:dagger-compiler:2.0.1' //needed for source code generation
+    compile 'com.google.dagger:dagger:2.0.1' //dagger itself
+    provided 'org.glassfish:javax.annotation:10.0-b28' //needed to resolve compilation errors, thanks to tutplus.org for finding the dependency
 }
