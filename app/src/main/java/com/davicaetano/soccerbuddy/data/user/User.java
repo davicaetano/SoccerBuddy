@@ -1,4 +1,4 @@
-package com.davicaetano.soccerbuddy.data.model;
+package com.davicaetano.soccerbuddy.data.user;
 
 import android.os.Parcel;
 import android.os.Parcelable;
@@ -6,9 +6,14 @@ import android.os.Parcelable;
 public class User implements Parcelable{
     public static final int FACEBOOK = 1;
     public static final int GOOGLE = 2;
+
     private String email;
+    private String name;
+    private String pictureUrl;
+    private String ID;
     private int loginMode;
 
+    //Parceable stuff
     public static final Parcelable.Creator<User> CREATOR = new Parcelable.Creator<User>(){
         @Override
         public User createFromParcel(Parcel source) {
@@ -20,25 +25,26 @@ public class User implements Parcelable{
             return new User[size];
         }
     };
-
-
-    public User(){
-    }
-
-    public User(Parcel source){
-        this.email = source.readString();
-        this.loginMode = source.readInt();
-    }
-
     @Override
     public int describeContents() {
         return 0;
     }
-
     @Override
     public void writeToParcel(Parcel dest, int flags) {
         dest.writeString(email);
         dest.writeInt(loginMode);
+        dest.writeString(name);
+        dest.writeString(pictureUrl);
+    }
+    public User(Parcel source){
+        this.email = source.readString();
+        this.loginMode = source.readInt();
+        this.name = source.readString();
+        this.pictureUrl = source.readString();
+    }
+
+
+    public User(){
     }
 
     public String getEmail() {
@@ -55,5 +61,28 @@ public class User implements Parcelable{
 
     public void setLoginMode(int loginMode) {
         this.loginMode = loginMode;
+    }
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getPictureUrl() {
+        return pictureUrl;
+    }
+
+    public void setPictureUrl(String pictureUrl) {
+        this.pictureUrl = pictureUrl;
+    }
+
+    public String getID() {
+        return ID;
+    }
+
+    public void setID(String ID) {
+        this.ID = ID;
     }
 }

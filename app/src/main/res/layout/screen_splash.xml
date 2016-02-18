@@ -16,25 +16,7 @@
         android:layout_centerHorizontal="true"
         android:layout_marginTop="41dp" />
 
-    <com.google.android.gms.common.SignInButton
-        android:id="@+id/signin_button"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_below="@+id/imageView"
-        android:layout_centerHorizontal="true"
-        android:layout_marginTop="29dp" />
-
-    <com.facebook.login.widget.LoginButton
-        android:id="@+id/facebook_login_button"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center_horizontal"
-        android:layout_marginBottom="29dp"
-        android:layout_above="@+id/progressBar"
-        android:layout_alignEnd="@+id/textview_copyright" />
-
-
-    <ProgressBar
+   <ProgressBar
         android:id="@+id/progressBar"
         android:layout_centerHorizontal="true"
         android:layout_gravity="bottom"

@@ -1,8 +1,6 @@
-package com.davicaetano.soccerbuddy.ui.presenter;
+package com.davicaetano.soccerbuddy.ui.home;
 
-import com.davicaetano.soccerbuddy.ui.HomeActivity;
-
-public class HomeActivityPresenter {
+public class HomeActivityPresenter implements HomeActivityContract.Presenter{
 
     private HomeActivity homeActivity;
 

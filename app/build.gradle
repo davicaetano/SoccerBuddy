@@ -27,6 +27,11 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+    testOptions { // <-- You need this for unit test
+        unitTests {
+            returnDefaultValues = true
+        }
+    }
 }
 repositories {
     mavenCentral()
@@ -49,4 +54,21 @@ dependencies {
     apt 'com.google.dagger:dagger-compiler:2.0.1' //needed for source code generation
     compile 'com.google.dagger:dagger:2.0.1' //dagger itself
     provided 'org.glassfish:javax.annotation:10.0-b28' //needed to resolve compilation errors, thanks to tutplus.org for finding the dependency
+
+    //Smack - XMPPHelper client
+    compile "org.igniterealtime.smack:smack-android:4.1.0-rc1"
+    compile "org.igniterealtime.smack:smack-tcp:4.1.0-rc1"
+    // optional features
+    compile "org.igniterealtime.smack:smack-android-extensions:4.1.0-rc1"
+
+    //Test frameworks
+    testCompile 'junit:junit:4.12'
+    testCompile 'org.mockito:mockito-core:1.10.19'
+
+    //
+    compile 'commons-codec:commons-codec:1.5'
+
+    compile 'com.google.code.gson:gson:2.2.4'
+
+
 }

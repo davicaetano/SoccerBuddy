@@ -3,8 +3,15 @@ package com.davicaetano.soccerbuddy;
 import android.content.Context;
 import android.content.SharedPreferences;
 
-import com.davicaetano.soccerbuddy.ui.components.SplashActivityComponent;
-import com.davicaetano.soccerbuddy.ui.modules.SplashActivityModule;
+import com.davicaetano.soccerbuddy.data.user.UserManager;
+import com.davicaetano.soccerbuddy.data.user.UserModule;
+import com.davicaetano.soccerbuddy.data.xmpp.XMPPModule;
+import com.davicaetano.soccerbuddy.data.xmpp.XMPPService;
+import com.davicaetano.soccerbuddy.ui.signin.SignInComponent;
+import com.davicaetano.soccerbuddy.ui.signin.SignInModule;
+import com.davicaetano.soccerbuddy.ui.splash.SplashComponent;
+import com.davicaetano.soccerbuddy.ui.splash.SplashModule;
+import com.google.gson.Gson;
 
 import javax.inject.Singleton;
 
@@ -13,15 +20,21 @@ import dagger.Component;
 @Singleton
 @Component(
         modules = {
-                AppModule.class
+                AppModule.class,
+                UserModule.class,
+                XMPPModule.class
         }
 )
 public interface AppComponent {
     CustomApplication application();
     Context applicationContext();
     SharedPreferences sharedPreferences();
+    Gson gson();
+    UserManager userManager();
+
+    XMPPService inject(XMPPService xmppService);
 
     //subcomponents.
-    SplashActivityComponent plus(SplashActivityModule splashActivityModule);
-    UserComponent plus(UserModule userModule);
+    SplashComponent plus(SplashModule splashModule);
+    SignInComponent plus(SignInModule signInModule);
 }

@@ -1,8 +1,6 @@
-package com.davicaetano.soccerbuddy.ui.components;
+package com.davicaetano.soccerbuddy.ui.home;
 
 import com.davicaetano.soccerbuddy.ui.ActivityScope;
-import com.davicaetano.soccerbuddy.ui.HomeActivity;
-import com.davicaetano.soccerbuddy.ui.modules.HomeActivityModule;
 
 import dagger.Subcomponent;
 
