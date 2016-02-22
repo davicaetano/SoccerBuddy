@@ -3,16 +3,13 @@ package com.davicaetano.soccerbuddy.data.xmpp;
 import android.app.Service;
 import android.content.Intent;
 import android.os.Bundle;
-import android.os.Handler;
 import android.os.IBinder;
 import android.text.TextUtils;
 import android.util.Log;
 
 import com.davicaetano.soccerbuddy.CustomApplication;
 import com.davicaetano.soccerbuddy.data.database.DBHelper;
-import com.davicaetano.soccerbuddy.data.user.UserManager;
 import com.davicaetano.soccerbuddy.data.xmpp.model.ChatMessage;
-import com.davicaetano.soccerbuddy.data.xmpp.model.ChatUser;
 import com.davicaetano.soccerbuddy.data.xmpp.model.GroupModel;
 import com.davicaetano.soccerbuddy.ui.chat.ChatActivity;
 import com.davicaetano.soccerbuddy.ui.groupchat.GroupChatActivity;
@@ -42,7 +39,8 @@ public class XMPPService extends Service {
     public static final String DATA_USER_STATUS = "data_user_status";
 
     public static final String DATA_LIST = "data_list";
-    public static final String USER_ID = "user_id";
+    public static final String USER_ID = "user";
+    public static final String USER_PASSWORD = "password";
     public static final String ISSINGLEGROUP = "IsSingleGroup";
     public static final String ISPROFILECHANGE = "IsProfileChange";
     public static final String GROUPID = "GroupId";
@@ -75,7 +73,7 @@ public class XMPPService extends Service {
     public static final int ACTION_FLAG_SETVCARD = 13;
 
     @Inject XMPPHelper helper;
-    @Inject UserManager sPreferenceManager;
+    @Inject XMPPApi xmppApi;
 
     @Override
     public IBinder onBind(Intent intent) {
@@ -96,23 +94,22 @@ public class XMPPService extends Service {
         super.onDestroy();
     }
 
-
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (intent != null) {
             Bundle bundle = intent.getExtras();
-
             if (bundle != null) {
-                int mMode = bundle.getInt(ACTION, -1);
-//                User user = sPreferenceManager.getUser();
-                ChatUser mUser = null;
+                int action = bundle.getInt(ACTION, -1);
 
-                switch (mMode) {
+                String user_id = intent.getStringExtra(USER_ID);
+                String password = intent.getStringExtra(USER_PASSWORD);
+
+                switch (action) {
                     case ACTION_REGISTER:
-                        helper.register(mUser);
+                        helper.register(user_id, password);
                         break;
                     case ACTION_LOGIN:
-                        helper.login(mUser);
+                        helper.login(user_id, password);
                         break;
                     case ACTION_LOGOUT:
                         helper.disconnect();
@@ -129,7 +126,6 @@ public class XMPPService extends Service {
                         break;
 
                     case ACTION_FRIEND_LIST:
-
                         helper.getFriendList();
                         break;
                     case ACTION_GET_USER_PRESENCE:
@@ -154,7 +150,7 @@ public class XMPPService extends Service {
                             String Id = bundle.getString(USER_ID);
                             boolean IsProfileChange=bundle.getBoolean(ISPROFILECHANGE);
                             ChatMessage messageData = bundle.getParcelable(DATA_MESSAGE);
-                            helper.JoinGroup(messageData, Grouplist, Id, IsProfileChange);
+//                            helper.JoinGroup(messageData, Grouplist, Id, IsProfileChange);
                         }
                         break;
                     case ACTION_FLAG_SETVCARD:
@@ -167,44 +163,78 @@ public class XMPPService extends Service {
         return START_NOT_STICKY;
     }
 
-    private XMPPCallbacks xmppCallbacks = new XMPPCallbacks() {
+    private void resendPendingMessageFromDatabase() {
+        ArrayList<ChatMessage> listChatMessages = DBHelper.getInstance(getApplicationContext()).getAllPendingMessage();
+        ChatUtils chatUtils = new ChatUtils(getApplicationContext());
+        for (ChatMessage chatMessage : listChatMessages) {
+            if(!TextUtils.isEmpty(chatMessage.isForImage)){
+                if (chatMessage.isForImage.equalsIgnoreCase("YES")) {
+                    chatUtils.sendMessage(chatMessage, chatMessage.receiver_id, chatMessage.group_id, true);
+                } else {
+                    chatUtils.sendMessage(chatMessage, chatMessage.receiver_id, chatMessage.group_id, false);
+                }
+            }else{
+                chatMessage.isForImage="NO";
+                chatUtils.sendMessage(chatMessage, chatMessage.receiver_id, chatMessage.group_id, false);
+            }
+        }
+    }
 
+    private XMPPConstants.XMPPCallbacks xmppCallbacks = new XMPPConstants.XMPPCallbacks() {
+        @Override
+        public void onConnectionFailed(Exception e) {
+            Log.v(TAG, "onConnectionFailed");
+
+            sendBroadcast((new Intent(ACTION_PERFORMED)).putExtra(ACTION, ACTION_FLAG_CONNECT_FAILED));
+        }
+        @Override
+        public void onConnected(XMPPConnection connection) {
+            Log.v(TAG, "onConnected");
+            sendBroadcast((new Intent(ACTION_PERFORMED)).putExtra(ACTION, ACTION_FLAG_CONNECT_SUCCESS));
+        }
         @Override
         public void onRegistrationFailed(Exception e) {
-            Log.e(TAG, "onRegistrationFailed", e);
-            Intent actionIntent = new Intent(ACTION_PERFORMED);
-            actionIntent.putExtra(ACTION, ACTION_FLAG_REGISTER_FAILED);
-            sendBroadcast(actionIntent);
+            Log.v(TAG, "onRegistrationFailed");
+            sendBroadcast((new Intent(ACTION_PERFORMED)).putExtra(ACTION, ACTION_FLAG_REGISTER_FAILED));
         }
-
         @Override
         public void onRegistrationComplete() {
-            Log.e(TAG, "onRegistrationComplete");
-
-            Intent actionIntent = new Intent(ACTION_PERFORMED);
-            actionIntent.putExtra(ACTION, ACTION_FLAG_REGISTER_SUCCESS);
-            sendBroadcast(actionIntent);
+            Log.v(TAG, "onRegistrationComplete");
+            sendBroadcast((new Intent(ACTION_PERFORMED)).putExtra(ACTION, ACTION_FLAG_REGISTER_SUCCESS));
         }
-
+        @Override
+        public void onLoginFailed(Exception e) {
+            Log.v(TAG, "onLoginFailed",e);
+            sendBroadcast((new Intent(ACTION_PERFORMED)).putExtra(ACTION, ACTION_FLAG_LOGIN_FAILED));
+        }
+        @Override
+        public void onLogin() {
+            Log.v(TAG, "onLogin");
+            xmppApi.onLogin();
+//            sendBroadcast((new Intent(ACTION_PERFORMED)).putExtra(ACTION, ACTION_FLAG_LOGIN_SUCCESS));
+            resendPendingMessageFromDatabase();
+        }
+        @Override
+        public void onLogout() {
+            Log.v(TAG, "onLogout");
+            sendBroadcast((new Intent(ACTION_PERFORMED)).putExtra(ACTION, ACTION_FLAG_LOGOUT));
+            XMPPService.this.stopSelf();
+        }
         @Override
         public void onMessageSent(ChatMessage chatMessage) {
-            Log.e(TAG, "onMessageSent - chatMessage = " + chatMessage.toString() );
-            Intent actionIntent;
+            Log.v(TAG, "onMessageSent");
             if (TextUtils.isEmpty(chatMessage.group_id)) {
-                actionIntent = new Intent(ACTION_PERFORMED);
+                sendBroadcast(new Intent(ACTION_PERFORMED).putExtra(ACTION, ACTION_FLAG_SEND_MESSAGE_SUCCESS)
+                        .putExtra(DATA_MESSAGE, chatMessage));
             } else {
-                actionIntent = new Intent(ACTION_GROUP_PERFORMED);
+                sendBroadcast(new Intent(ACTION_GROUP_PERFORMED).putExtra(ACTION, ACTION_FLAG_SEND_MESSAGE_SUCCESS)
+                        .putExtra(DATA_MESSAGE, chatMessage));
             }
-            actionIntent.putExtra(ACTION, ACTION_FLAG_SEND_MESSAGE_SUCCESS);
-            actionIntent.putExtra(DATA_MESSAGE, chatMessage);
-            sendBroadcast(actionIntent);
-
         }
 
         @Override
-        public void onMessageDeliver(String messageId, boolean IsGroup) {
-            Log.e(TAG, "onMessageDeliver - messageId = " + messageId);
-
+        public void onMessageDelivered(String messageId, boolean IsGroup) {
+            Log.v(TAG, "onMessageDeliver");
             Intent actionIntent;
             if (IsGroup) {
                 actionIntent = new Intent(ACTION_GROUP_PERFORMED);
@@ -219,8 +249,7 @@ public class XMPPService extends Service {
 
         @Override
         public void onMessageSendingFailed(ChatMessage chatMessage, Exception e) {
-            Log.e(TAG, "onMessageSendingFailed - chatMessage = " + chatMessage.toString(), e);
-
+            Log.v(TAG, "onMessageSendingFailed");
             Intent actionIntent;
             if (TextUtils.isEmpty(chatMessage.group_id)) {
                 actionIntent = new Intent(ACTION_PERFORMED);
@@ -234,9 +263,8 @@ public class XMPPService extends Service {
         }
 
         @Override
-        public void onMessageRecieved(ChatMessage chatMessage) {
-            Log.v(TAG, "onMessageRecieved - chatMessage = " + chatMessage.toString());
-
+        public void onMessageReceived(ChatMessage chatMessage) {
+            Log.v(TAG, "onMessageRecieved");
             if (ChatActivity.ISVISIBLE) {
                 // IF APPLICATION IS OPEN THEN SEND BROADCAST SO USER CAN SHOW IT ON LISTVIEW.
                 Intent actionIntent;
@@ -265,9 +293,8 @@ public class XMPPService extends Service {
         }
 
         @Override
-        public void onGroupMessageRecieved(ChatMessage messageData) {
-            Log.v(TAG, "onGroupMessageRecieved - chatMessage = " + messageData.toString());
-
+        public void onGroupMessageReceived(ChatMessage messageData) {
+            Log.v(TAG, "onGroupMessageRecieved");
             if (GroupChatActivity.ISVISIBLE) {
                 // if application is open then send broadcast so user can show it on listview
                 Intent actionIntent;
@@ -279,126 +306,35 @@ public class XMPPService extends Service {
             } else {
                 ChatUtils.generateNotification(getApplicationContext(), messageData);
             }
-
         }
 
         @Override
         public void onGetUserPresence(String userId, String status) {
-            Log.v(TAG, "onGetUserPresence - userId = " + userId);
-            Log.v(TAG, "onGetUserPresence - status = " + status);
-
+            Log.v(TAG, "onGetUserPresence");
             Intent actionIntent = new Intent(ACTION_PERFORMED);
             actionIntent.putExtra(ACTION, ACTION_FLAG_GET_USER_PRESENCE);
             actionIntent.putExtra(DATA_USER_ID, userId);
             actionIntent.putExtra(DATA_USER_STATUS, status);
 
             sendBroadcast(actionIntent);
-
         }
 
         @Override
         public void onUserPresenceChange(String userId, String status) {
-            Log.v(TAG, "onUserPresenceChange - userId = " + userId);
-            Log.v(TAG, "onUserPresenceChange - status = " + status);
-
+            Log.v(TAG, "onUserPresenceChange");
             Intent actionIntent = new Intent(ACTION_PERFORMED);
             actionIntent.putExtra(ACTION, ACTION_FLAG_GET_USER_PRESENCE);
             actionIntent.putExtra(DATA_USER_ID, userId);
             actionIntent.putExtra(DATA_USER_STATUS, status);
 
             sendBroadcast(actionIntent);
-
-        }
-
-        @Override
-        public void onLoginFailed(Exception e) {
-            Log.e(TAG, "onLoginFailed", e);
-
-            Intent actionIntent = new Intent(ACTION_PERFORMED);
-            actionIntent.putExtra(ACTION, ACTION_FLAG_LOGIN_FAILED);
-            sendBroadcast(actionIntent);
-
-        }
-
-        @Override
-        public void onLogin(ChatUser chatUser) {
-            Log.v(TAG, "onLogin - chatUser = " + chatUser);
-
-            Intent actionIntent = new Intent(ACTION_PERFORMED);
-            actionIntent.putExtra(ACTION, ACTION_FLAG_LOGIN_SUCCESS);
-            sendBroadcast(actionIntent);
-
-            resendPendingMessageFromDatabase();
-        }
-
-        @Override
-        public void onConnected(XMPPConnection connection) {
-            Log.v(TAG, "onConnected");
-
-            Intent actionIntent = new Intent(ACTION_PERFORMED);
-            actionIntent.putExtra(ACTION, ACTION_FLAG_CONNECT_SUCCESS);
-            sendBroadcast(actionIntent);
-
-        }
-
-        @Override
-        public void onConnectionFailed(Exception e) {
-            Log.v(TAG, "onConnected", e);
-
-            Intent actionIntent = new Intent(ACTION_PERFORMED);
-            actionIntent.putExtra(ACTION, ACTION_FLAG_CONNECT_FAILED);
-            sendBroadcast(actionIntent);
-
-        }
-
-        @Override
-        public void onLogout() {
-            Log.v(TAG, "onLogout");
-
-            Intent actionIntent = new Intent(ACTION_PERFORMED);
-            actionIntent.putExtra(ACTION, ACTION_FLAG_LOGOUT);
-            sendBroadcast(actionIntent);
-
-            XMPPService.this.stopSelf();
         }
 
         @Override
         public void onFriendListReceived(ArrayList<String> list) {
-            Log.v(TAG, "onFriendListReceived - list.size() = " + list.size());
-
-            final Intent actionIntent = new Intent(ACTION_PERFORMED);
-            actionIntent.putExtra(ACTION, ACTION_FLAG_FRIEND_LIST_RECEIVED);
-            actionIntent.putStringArrayListExtra(DATA_LIST, list);
-
-            new Handler().postDelayed(new Runnable() {
-
-                @Override
-                public void run() {
-                    sendBroadcast(actionIntent);
-                    Log.v(TAG, "onFriendListReceived - Running handler");
-                }
-            }, 100);
+            Log.v(TAG, "onFriendListReceived");
+            xmppApi.onListReceived(list);
         }
     };
 
-    private void resendPendingMessageFromDatabase() {
-        Log.v(TAG, "resendPendingMessageFromDatabase");
-
-        ArrayList<ChatMessage> listChatMessages = DBHelper.getInstance(getApplicationContext()).getAllPendingMessage();
-        ChatUtils chatUtils = new ChatUtils(getApplicationContext());
-        for (ChatMessage chatMessage : listChatMessages) {
-            if(!TextUtils.isEmpty(chatMessage.isForImage)){
-                if (chatMessage.isForImage.equalsIgnoreCase("YES")) {
-                    chatUtils.sendMessage(chatMessage, chatMessage.receiver_id, chatMessage.group_id, true);
-                } else {
-                    chatUtils.sendMessage(chatMessage, chatMessage.receiver_id, chatMessage.group_id, false);
-                }
-            }else{
-                chatMessage.isForImage="NO";
-                chatUtils.sendMessage(chatMessage, chatMessage.receiver_id, chatMessage.group_id, false);
-
-            }
-
-        }
-    }
 }

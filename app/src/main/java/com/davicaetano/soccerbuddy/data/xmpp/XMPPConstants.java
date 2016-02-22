@@ -1,5 +1,11 @@
 package com.davicaetano.soccerbuddy.data.xmpp;
 
+import com.davicaetano.soccerbuddy.data.xmpp.model.ChatMessage;
+
+import org.jivesoftware.smack.XMPPConnection;
+
+import java.util.ArrayList;
+
 public class XMPPConstants {
     public static final String PARAMS_TO = "to";
     public static final String PARAMS_MYJID = "myJid";
@@ -64,5 +70,36 @@ public class XMPPConstants {
     public static String STR_SINGLE_CHAT = "SingleChat";
     public static String STR_GROUP_CHAT = "GroupChat";
 
+    public interface XMPPCallbacks {
+        void onRegistrationComplete();
+
+        void onRegistrationFailed(Exception e);
+
+        void onLogin();
+
+        void onLoginFailed(Exception e);
+
+        void onLogout();
+
+        void onMessageReceived(ChatMessage messageData);
+
+        void onGroupMessageReceived(ChatMessage messageData);
+
+        void onMessageSent(ChatMessage message);
+
+        void onMessageDelivered(String message, boolean IsGroup);
+
+        void onMessageSendingFailed(ChatMessage message, Exception e);
+
+        void onConnected(XMPPConnection connection);
+
+        void onConnectionFailed(Exception e);
+
+        void onFriendListReceived(ArrayList<String> list);
+
+        void onGetUserPresence(String userId, String status);
+
+        void onUserPresenceChange(String userId, String status);
+    }
 
 }

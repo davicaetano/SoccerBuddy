@@ -20,7 +20,7 @@ public class PasswordUnitTest{
 
     @Test
     public void Password(){
-        String password = Utils.password("davicaetano@gmail.com","passwordtesteparameuprograma","salparaomeuprograma");
+        String password = Utils.password("davicaetano@gmail.com");
         String passwordExpected = "e88c8886397f56ecd42bfca0e414d4d2ddde4ecf";
         assertEquals("The password HMAC is not working as expected.",passwordExpected,password);
     }

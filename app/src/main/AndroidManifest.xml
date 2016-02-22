@@ -32,7 +32,11 @@
             android:name="com.facebook.FacebookActivity"
             android:label="@string/title_facebook_login" >
         </activity>
+        <service android:name=".data.xmpp.XMPPService">
+
+        </service>
         <meta-data android:name="com.facebook.sdk.ApplicationId" android:value="@string/facebook_app_id"/>
+
     </application>
 
 </manifest>

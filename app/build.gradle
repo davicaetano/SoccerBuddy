@@ -34,8 +34,11 @@ android {
     }
 }
 repositories {
+    maven {url "https://jitpack.io"}
+    maven {url 'https://oss.sonatype.org/content/repositories/snapshots' }
+    maven {url 'http://repo1.maven.org/maven2/eu/geekplace/javapinning/java-pinning-jar/1.0.1/' }
     mavenCentral()
-    maven { url "https://jitpack.io" }
+
 }
 
 dependencies {
@@ -56,10 +59,10 @@ dependencies {
     provided 'org.glassfish:javax.annotation:10.0-b28' //needed to resolve compilation errors, thanks to tutplus.org for finding the dependency
 
     //Smack - XMPPHelper client
-    compile "org.igniterealtime.smack:smack-android:4.1.0-rc1"
-    compile "org.igniterealtime.smack:smack-tcp:4.1.0-rc1"
+    compile "org.igniterealtime.smack:smack-android:4.1.0"
+    compile "org.igniterealtime.smack:smack-tcp:4.1.0"
     // optional features
-    compile "org.igniterealtime.smack:smack-android-extensions:4.1.0-rc1"
+    compile "org.igniterealtime.smack:smack-android-extensions:4.1.0"
 
     //Test frameworks
     testCompile 'junit:junit:4.12'
@@ -67,6 +70,10 @@ dependencies {
 
     //
     compile 'commons-codec:commons-codec:1.5'
+
+    //Para seguranca no smack;
+//    compile "eu.geekplace.java-pinning:java-pinning-jar:1.0.1"
+    compile 'org.thoughtcrime.ssl.pinning:AndroidPinning:1.0.0'
 
     compile 'com.google.code.gson:gson:2.2.4'
 

@@ -6,21 +6,17 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import com.davicaetano.soccerbuddy.data.database.DBHelper;
-import com.davicaetano.soccerbuddy.data.xmpp.model.GroupModel;
 import com.davicaetano.soccerbuddy.data.xmpp.model.ChatMessage;
-import com.davicaetano.soccerbuddy.data.xmpp.model.ChatUser;
+import com.davicaetano.soccerbuddy.data.xmpp.model.GroupModel;
 
 import org.jivesoftware.smack.ConnectionConfiguration;
-import org.jivesoftware.smack.ConnectionCreationListener;
 import org.jivesoftware.smack.SmackConfiguration;
 import org.jivesoftware.smack.SmackException;
 import org.jivesoftware.smack.StanzaListener;
-import org.jivesoftware.smack.XMPPConnection;
 import org.jivesoftware.smack.chat.Chat;
 import org.jivesoftware.smack.chat.ChatManager;
 import org.jivesoftware.smack.filter.MessageTypeFilter;
-import org.jivesoftware.smack.filter.PacketTypeFilter;
-import org.jivesoftware.smack.filter.StanzaFilter;
+import org.jivesoftware.smack.filter.StanzaTypeFilter;
 import org.jivesoftware.smack.packet.Message;
 import org.jivesoftware.smack.packet.Presence;
 import org.jivesoftware.smack.packet.Stanza;
@@ -29,6 +25,7 @@ import org.jivesoftware.smack.roster.RosterEntry;
 import org.jivesoftware.smack.roster.RosterListener;
 import org.jivesoftware.smack.tcp.XMPPTCPConnection;
 import org.jivesoftware.smack.tcp.XMPPTCPConnectionConfiguration;
+import org.jivesoftware.smack.util.TLSUtils;
 import org.jivesoftware.smackx.iqregister.AccountManager;
 import org.jivesoftware.smackx.muc.DiscussionHistory;
 import org.jivesoftware.smackx.muc.MultiUserChat;
@@ -38,69 +35,84 @@ import org.jivesoftware.smackx.receipts.ReceiptReceivedListener;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.SSLSession;
+
 import static com.davicaetano.soccerbuddy.utils.Utils.IsInternetConnected;
+
 
 /**
  * Created by davicaetano on 1/21/16.
  */
 public class XMPPHelper {
-    private final String TAG = "XMPPHelper";
+    private final String TAG = this.getClass().getName();
     public static String CONFERENCE_NAME = "@conference.54.183.160.87";
-    public static int PORT = 5330;
+    public static int PORT = 5222;
     public static String HOST = "54.183.160.87";
 
     Context context;
-    XMPPTCPConnectionConfiguration.Builder config;
+
+    XMPPTCPConnectionConfiguration.Builder configBuilder;
+
     private XMPPTCPConnection connection;
     private ChatManager mChatManager;
     private Roster mRoster;
-    private XMPPCallbacks xmppCallBacks;
-    private ChatUser mChatUser;
+    private XMPPConstants.XMPPCallbacks xmppCallBacks;
     private enum PENDING_ACTION {
         NONE, REGISTER, LOGIN
     }
     private PENDING_ACTION mPendingAction = PENDING_ACTION.NONE;
-    private UserUtils sPreferenceManager;
-
 
     public XMPPHelper(Context context) {
         this.context = context;
-        sPreferenceManager = UserUtils.getInstance(context);
-        config = XMPPTCPConnectionConfiguration.builder();
-        config.setSecurityMode(ConnectionConfiguration.SecurityMode.required);
-        config.setUsernameAndPassword("davicaetano@gmail.com", "abc123");
-        config.setServiceName(HOST);
-        config.setPort(PORT);
-        config.setDebuggerEnabled(true);
-        connection = new XMPPTCPConnection(config.build());
-        connection.setPacketReplyTimeout(10000);
+
+        configBuilder = XMPPTCPConnectionConfiguration.builder();
+        configBuilder.setUsernameAndPassword("davicaetano", "abc123");
+        configBuilder.setServiceName("Smack");
+        configBuilder.setHost(HOST);
+        configBuilder.setPort(PORT);
+        configBuilder.setConnectTimeout(10000);
+        configBuilder.setSecurityMode(ConnectionConfiguration.SecurityMode.required);
+        try{
+            TLSUtils.acceptAllCertificates(configBuilder);
+        }catch (NoSuchAlgorithmException e) {
+        }catch (KeyManagementException e) {
+        }
+        configBuilder.setHostnameVerifier(new HostnameVerifier() {
+            @Override
+            public boolean verify(String hostname, SSLSession session) {
+                return true;
+            }
+        });
     }
 
-    public void setXMPPCallbacks(XMPPCallbacks xmppCallBacks) {
+    public void setXMPPCallbacks(XMPPConstants.XMPPCallbacks xmppCallBacks) {
         this.xmppCallBacks = xmppCallBacks;
     }
 
-    public XMPPTCPConnection getConnection() {
-        return connection;
+    // ==========REGISTER ===========
+    // Register creates an account for the user.
+
+    public void register(String user, String password) {
+            new RegistrationTask().execute(new String[]{user, password});
     }
 
-    // ==========CONNECTIONS===========
-
-    public void connect() {
-        new ConnectionTask().execute();
-    }
-
-    private class ConnectionTask extends AsyncTask<Void, Void, Boolean> {
+    private class RegistrationTask extends AsyncTask<String, Void, Boolean> {
         private Exception exception;
-
         @Override
-        protected Boolean doInBackground(Void... params) {
+        protected Boolean doInBackground(String... params) {
             try {
-                xmppConnect();
+                if(connection == null)
+                    connection = new XMPPTCPConnection(configBuilder.build());
+                if(!connection.isConnected())
+                    connection.connect();
+                AccountManager.getInstance(connection).createAccount(params[0], params[1], null);
                 return true;
             } catch (Exception e) {
                 e.printStackTrace();
@@ -108,94 +120,32 @@ public class XMPPHelper {
             }
             return false;
         }
-
         @Override
         protected void onPostExecute(Boolean result) {
-            Log.e(TAG, "ConnectionTask mPendingAction=" + mPendingAction);
-            Log.e(TAG,"ConnectionTask - onPostExecute");
-
-            if (xmppCallBacks != null && result) {
-                if (mPendingAction == PENDING_ACTION.REGISTER) {
-                    register(mChatUser);
-                } else if (mPendingAction == PENDING_ACTION.LOGIN) {
-                    login(mChatUser);
-                } else {
-                    xmppCallBacks.onConnected(getConnection());
-
-                }
-            } else {
-                xmppCallBacks.onConnectionFailed(exception);
-            }
+            super.onPostExecute(result);
+            if (result)
+                xmppCallBacks.onRegistrationComplete();
+            else
+                xmppCallBacks.onRegistrationFailed(exception);
         }
     }
 
-    private void xmppConnect() throws Exception {
-        if(connection == null)
-            connection = new XMPPTCPConnection(config.build());
-        if(!connection.isConnected())
-            connection.connect();
+    //LOGIN
+
+    public void login(String user, String password) {
+        new LoginTask().execute(new String[]{user, password});
     }
-
-    public void disconnect() {
-        new DisconnectionTask().execute();
-    }
-
-    private class DisconnectionTask extends AsyncTask<Void, Void, Void> {
-
-        @Override
-        protected Void doInBackground(Void... params) {
-            if (connection != null) {
-                try {
-                    Presence presence = new Presence(Presence.Type.unavailable);
-                    connection.disconnect(presence);
-                } catch (SmackException.NotConnectedException e) {
-                    Log.e(TAG, "DisconnectionTask - doInBackground",e);
-                }
-                connection = null;
-            }
-            return null;
-        }
-
-        @Override
-        protected void onPostExecute(Void result) {
-            Log.e(TAG,"DisconnectionTask - onPostExecute");
-
-            if (xmppCallBacks != null)
-                xmppCallBacks.onLogout();
-        }
-    }
-
-
-    // ==========REGISTER ===========
-
-    public void register(ChatUser chatUser) {
-        this.mChatUser = chatUser;
-        try {
-            if (connection != null && connection.isConnected()) {
-                new RegisterationTask().execute(chatUser);
-            } else {
-                mPendingAction = PENDING_ACTION.REGISTER;
-                connect();
-            }
-        } catch (Exception e) {
-            if (xmppCallBacks != null)
-                xmppCallBacks.onRegistrationFailed(e);
-            e.printStackTrace();
-        }
-    }
-
-    private class RegisterationTask extends AsyncTask<ChatUser, Void, Boolean> {
-
+    private class LoginTask extends AsyncTask<String, Void, Boolean> {
         private Exception exception;
-
         @Override
-        protected Boolean doInBackground(ChatUser... params) {
-
+        protected Boolean doInBackground(String... params) {
             try {
-                xmppRegister(params[0]);
+                if(connection == null) connection = new XMPPTCPConnection(configBuilder.build());
+                if(!connection.isConnected()) connection.connect();
+                if(connection.isAuthenticated()) return true;
+                connection.login();
                 return true;
             } catch (Exception e) {
-                e.printStackTrace();
                 exception = e;
             }
             return false;
@@ -204,54 +154,61 @@ public class XMPPHelper {
         @Override
         protected void onPostExecute(Boolean result) {
             super.onPostExecute(result);
+            if (result) {
+                xmppCallBacks.onLogin();
+                sendPresencePacket(true);
+                listenForInCommingPacket();
 
-            if (xmppCallBacks != null && result)
-                xmppCallBacks.onRegistrationComplete();
-            else
-                xmppCallBacks.onRegistrationFailed(exception);
-        }
-
-    }
-
-    public void xmppRegister(ChatUser chatUser) throws Exception {
-
-        AccountManager mAccountManager = AccountManager.getInstance(connection);
-
-        mAccountManager.createAccount(chatUser.getUserId(), chatUser.getPassword(), null);
-
-    }
-
-    // ==========LOGIN===========
-
-    public void login(ChatUser chatUser) {
-        Log.v(TAG, "login - starting...");
-        this.mChatUser = chatUser;
-        try {
-            Log.v(TAG, "login - Checking connection...");
-            if (connection != null && connection.isConnected()) {
-                Log.v(TAG, "login - Connected - checking authentication...");
-
-                if (!connection.isAuthenticated()) {
-                    Log.v(TAG, "login - Not authenticated - Logging in");
-                    new LoginTask().execute();
-                } else {
-                    listenForInCommingPacket();
-                    if (xmppCallBacks != null) {
-                        sendPresencePacket(true);
-                        xmppCallBacks.onLogin(mChatUser);
-                    }
-                }
+//                //Rejoined the groups after login successful.
+//                String groupsData=sPreferenceManager.getGroupListData();
+//                fetchJoinedGroupList(groupsData, null, mChatUser.getEmail(), false);
             } else {
-                mPendingAction = PENDING_ACTION.LOGIN;
-                connect();
+                xmppCallBacks.onLoginFailed(exception);
             }
-        } catch (Exception e) {
-            if (xmppCallBacks != null)
-                xmppCallBacks.onLoginFailed(e);
-            e.printStackTrace();
         }
-
     }
+
+
+
+    //Disconnect
+
+    public void disconnect() {
+        if(connection!= null && connection.isConnected())
+            new DisconnectionTask().execute();
+    }
+
+    private class DisconnectionTask extends AsyncTask<Void, Void, Void> {
+        @Override
+        protected Void doInBackground(Void... params) {
+            try {
+                Presence presence = new Presence(Presence.Type.unavailable);
+                connection.disconnect(presence);
+            } catch (SmackException.NotConnectedException e) {}
+            return null;
+        }
+        @Override
+        protected void onPostExecute(Void result) {
+            xmppCallBacks.onLogout();
+        }
+    }
+
+
+    ///////
+
+    public void sendPresencePacket(boolean isAvailable) {
+        try {
+            Stanza presence;
+            if (isAvailable) {
+                presence = new Presence(Presence.Type.available);
+            } else {
+                presence = new Presence(Presence.Type.unavailable);
+            }
+            connection.sendStanza(presence);
+        } catch (Exception e) {
+        }
+    }
+
+
     private void fetchJoinedGroupList(String groupsData, ChatMessage message, String UserId, boolean IsProfileChange) {
         ArrayList<GroupModel> Grouplist = new ArrayList<>();
         try{
@@ -269,8 +226,6 @@ public class XMPPHelper {
         }catch (Exception e){
             e.printStackTrace();
         }
-
-
     }
 
     public void JoinGroup(String groupID, String UserId) {
@@ -300,12 +255,12 @@ public class XMPPHelper {
                         new JoinGroupTask(messageData, mlist, UserId, IsProfileChange).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
                     } else {
                         mPendingAction = PENDING_ACTION.LOGIN;
-                        login(mChatUser);
+//                        login(mChatUser);
                     }
 
                 } else {
                     mPendingAction = PENDING_ACTION.NONE;
-                    connect();
+//                    connect();
                 }
 
             } catch (Exception e) {
@@ -444,10 +399,10 @@ public class XMPPHelper {
                 }
 
                 if (isFound == false) {
-                    Presence subscribe = new Presence(Presence.Type.subscribe);
+                    Stanza subscribe = new Presence(Presence.Type.subscribe);
                     subscribe.setTo(userId);
                     // subscribe.setMode(Presence.Mode.available);
-                    connection.sendPacket(subscribe);
+                    connection.sendStanza(subscribe);
                 }
             }
         } catch (Exception e) {
@@ -456,95 +411,12 @@ public class XMPPHelper {
         }
     }
 
-    public void sendPresencePacket(boolean isAvailable) {
-        try {
-            Presence presence;
-            if (isAvailable) {
-                presence = new Presence(Presence.Type.available);
-            } else {
-                presence = new Presence(Presence.Type.unavailable);
-            }
 
-            connection.sendPacket(presence);
-        } catch (Exception e) {
-        }
-    }
-
-    private class LoginTask extends AsyncTask<Void, Void, Boolean> {
-
-        private Exception exception;
-
-        @Override
-        protected Boolean doInBackground(Void... params) {
-
-            try {
-                xmppLogin(mChatUser);
-               /* if (mConnection != null && mConnection.isConnected()) {
-                    ChatLog.i("LoginTask connection is there...");
-                    ChatLog.i("LoginTask checking authentication...");
-                    if (!mConnection.isAuthenticated()) {
-                        ChatLog.i("LoginTask not authenticated so logining...");
-                        ChatLog.i("Logintask goining to xmppLogin...");
-                        xmppLogin(mChatUser);
-                    } else {
-                        listenForInCommingPacket();
-                        if (xmppCallBacks != null) {
-                            sendPresencePacket(true);
-//                            xmppCallBacks.onLogin(mChatUser);
-                        }
-                    }
-                } else {
-                    mPendingAction = PENDING_ACTION.LOGIN;
-                    connect();
-                }*/
-
-
-
-                return true;
-            } catch (Exception e) {
-                e.printStackTrace();
-                exception = e;
-            }
-            return false;
-        }
-
-        @Override
-        protected void onPostExecute(Boolean result) {
-            super.onPostExecute(result);
-
-            if (xmppCallBacks != null && result) {
-                xmppCallBacks.onLogin(mChatUser);
-                listenForInCommingPacket();
-                sendPresencePacket(true);
-                //Rejoined the groups after login successful.
-                String groupsData=sPreferenceManager.getGroupListData();
-                fetchJoinedGroupList(groupsData, null, mChatUser.getUserId(), false);
-                //
-            } else {
-                xmppCallBacks.onLoginFailed(exception);
-            }
-        }
-    }
 
     private void listenForInCommingPacket() {
-
-
-
-
-        StanzaFilter chatFilter = MessageTypeFilter.CHAT;
-        StanzaFilter groupchatFilter = MessageTypeFilter.GROUPCHAT;
-        StanzaFilter presenceFilter = new PacketTypeFilter(Presence.class);
-        connection.addAsyncStanzaListener(mChatListener, chatFilter);
-        connection.addAsyncStanzaListener(mPresenceListener, presenceFilter);
-        connection.addAsyncStanzaListener(mgroupChatListener, groupchatFilter);
-    }
-
-
-    private void xmppLogin(ChatUser chatUser) throws Exception {
-        Log.e(TAG, "UserId=" + chatUser.getUserId());
-        Log.e(TAG, "User Password=" + chatUser.getPassword());
-
-        connection.login(chatUser.getUserId(), chatUser.getPassword());
+        connection.addAsyncStanzaListener(mChatListener, MessageTypeFilter.CHAT);
+        connection.addAsyncStanzaListener(mPresenceListener, StanzaTypeFilter.PRESENCE);
+        connection.addAsyncStanzaListener(mgroupChatListener, MessageTypeFilter.GROUPCHAT);
     }
 
 
@@ -567,7 +439,6 @@ public class XMPPHelper {
 
         @Override
         protected Boolean doInBackground(Void... params) {
-
             try {
                 if (IsForImage) {
                     xmppSendGroupMessage(messageData, GroupId, IsForImage);
@@ -579,7 +450,6 @@ public class XMPPHelper {
                         xmppSendGroupMessage(messageData, GroupId, IsForImage);
                     }
                 }
-
                 return true;
             } catch (Exception e) {
                 e.printStackTrace();
@@ -590,7 +460,6 @@ public class XMPPHelper {
 
         @Override
         protected void onPostExecute(Boolean result) {
-
             if (xmppCallBacks != null && result) {
                 xmppCallBacks.onMessageSent(messageData);
                 messageData.status = XMPPConstants.STATUS_TYPE_SENT;
@@ -611,12 +480,12 @@ public class XMPPHelper {
                         new SendMessageTask(messageData, toUser, GroupId, IsForImage).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
                     } else {
                         mPendingAction = PENDING_ACTION.LOGIN;
-                        login(mChatUser);
+//                        login(mChatUser);
                     }
 
                 } else {
                     mPendingAction = PENDING_ACTION.LOGIN;
-                    connect();
+//                    connect();
                 }
 
             } catch (Exception e) {
@@ -719,12 +588,12 @@ public class XMPPHelper {
                         new GetFriendListTask().execute();
                     } else {
                         mPendingAction = PENDING_ACTION.LOGIN;
-                        login(mChatUser);
+//                        login(mChatUser);
                     }
 
                 } else {
                     mPendingAction = PENDING_ACTION.NONE;
-                    connect();
+//                    connect();
                 }
 
             } catch (Exception e) {
@@ -739,13 +608,8 @@ public class XMPPHelper {
     }
 
     private class GetFriendListTask extends AsyncTask<Void, Void, Boolean> {
-
         private Exception exception;
         private ArrayList<String> friendList;
-
-        public GetFriendListTask() {
-
-        }
 
         @Override
         protected Boolean doInBackground(Void... params) {
@@ -762,7 +626,6 @@ public class XMPPHelper {
 
         @Override
         protected void onPostExecute(Boolean result) {
-
             if (xmppCallBacks != null && result) {
                 xmppCallBacks.onFriendListReceived(friendList);
             } else {
@@ -814,9 +677,9 @@ public class XMPPHelper {
                             chatMessage.isdeliver = "false";
                             chatMessage.isread = "false";
 
-                            if(!mChatUser.getUserId().equalsIgnoreCase(chatMessage.sender_id)){
-                                DBHelper.getInstance(context).add(chatMessage);
-                            }
+//                            if(!mChatUser.getEmail().equalsIgnoreCase(chatMessage.sender_id)){
+//                                DBHelper.getInstance(context).add(chatMessage);
+//                            }
 
                             return chatMessage;
                         }
@@ -858,13 +721,10 @@ public class XMPPHelper {
                                 DBHelper.getInstance(context).add(chatMessage);
                                 return chatMessage;
                             }
-
                         }
-
                     }
                 }
                 return null;
-
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -873,56 +733,15 @@ public class XMPPHelper {
         return null;
     }
 
-    private ConnectionCreationListener onConnectionCreationListener = new ConnectionCreationListener() {
-
-        @Override
-        public void connectionCreated(XMPPConnection arg0) {
-            arg0.setPacketReplyTimeout(5000);
-            Log.v(TAG,"Connection created...");
-
-            switch (mPendingAction) {
-                case NONE:
-                    break;
-                case LOGIN:
-                    Log.v(TAG,"Pending action is login...");
-                    login(mChatUser);
-                    break;
-                case REGISTER:
-                    register(mChatUser);
-                    break;
-            }
-            mPendingAction = PENDING_ACTION.NONE;
-
-            // FOR RECEIPTS AND FRIENDS OFFLINE, ONLINE STATUS CHANGE
-            if (connection != null) {
-                mChatManager = ChatManager.getInstanceFor(connection);
-//                DeliveryReceiptManager.getInstanceFor(connection).enableAutoReceipts();
-                DeliveryReceiptManager.getInstanceFor(connection).addReceiptReceivedListener(mReceiptReceived);
-                mRoster = Roster.getInstanceFor(connection);
-                mRoster.addRosterListener(mRosterListener);
-            } else {
-                Log.e(TAG, "Connection null");
-            }
-
-
-            if (xmppCallBacks != null)
-                xmppCallBacks.onConnected(connection);
-
-        }
-    };
-
-
-
     private StanzaListener mChatListener = new StanzaListener() {
-
-
         public void processPacket(Stanza stanza) {
             Message message = (Message) stanza;
             ChatMessage messageData = parceRecievedPacket(message);
-            if (xmppCallBacks != null && messageData != null)
+            if (xmppCallBacks != null && messageData != null) {
                 if (TextUtils.isEmpty(messageData.isForImage)) {
-                    xmppCallBacks.onMessageRecieved(messageData);
+                    xmppCallBacks.onMessageReceived(messageData);
                 }
+            }
         }
     };
 
@@ -938,7 +757,7 @@ public class XMPPHelper {
                         if (obj.has(XMPPConstants.MESSAGE_TAG)) {
                             if (xmppCallBacks != null && messageData != null)
                                 if (TextUtils.isEmpty(messageData.isForImage)) {
-                                    xmppCallBacks.onGroupMessageRecieved(messageData);
+                                    xmppCallBacks.onGroupMessageReceived(messageData);
                                 }
                             Log.v(TAG, "XMPPHelper - mgroupChatListener");
                             Log.v(TAG, "mgroupChatListener");
@@ -972,9 +791,9 @@ public class XMPPHelper {
             Log.v(TAG, "ReceiptReceivedListener - toJid: " + toJid);
             if (xmppCallBacks != null)
                 if (fromJid.contains("conference")) {//for group
-                    xmppCallBacks.onMessageDeliver(receiptId, true);
+                    xmppCallBacks.onMessageDelivered(receiptId, true);
                 } else {//single chat
-                    xmppCallBacks.onMessageDeliver(receiptId, false);
+                    xmppCallBacks.onMessageDelivered(receiptId, false);
                 }
 
             //BUT I AM CONSIDER STATUS NOT IS DELIEVER

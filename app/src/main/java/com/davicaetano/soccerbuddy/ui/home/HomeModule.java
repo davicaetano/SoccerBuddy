@@ -1,5 +1,6 @@
 package com.davicaetano.soccerbuddy.ui.home;
 
+import com.davicaetano.soccerbuddy.data.xmpp.ChatApi;
 import com.davicaetano.soccerbuddy.ui.ActivityScope;
 
 import dagger.Module;
@@ -7,19 +8,19 @@ import dagger.Provides;
 
 @Module
 public class HomeModule {
-    private HomeActivity homeActivity;
+    private HomeContract.View view;
 
-    public HomeModule(HomeActivity homeActivity) {
-        this.homeActivity = homeActivity;
+    public HomeModule(HomeContract.View view) {
+        this.view = view;
     }
 
     @Provides
     @ActivityScope
-    HomeActivity provideHomeActivity(){return homeActivity;}
+    HomeContract.View provideHomeActivity(){return view;}
 
     @Provides
     @ActivityScope
-    HomePresenter provideHomeActivityPresenter(){
-        return new HomePresenter(homeActivity);
+    HomeContract.Presenter provideHomePresenter(ChatApi chatApi){
+        return new HomePresenter(chatApi, view);
     }
 }

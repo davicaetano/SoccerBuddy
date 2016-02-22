@@ -17,7 +17,7 @@ public class SignInModule {
     @ActivityScope
     @Provides
     SignInContract.View provideSignInActivity(){
-        return this.view;
+        return view;
     }
 
     @ActivityScope

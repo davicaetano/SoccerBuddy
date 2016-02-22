@@ -15,9 +15,6 @@ public class SignInPresenter implements SignInContract.Presenter{
     SignInContract.View view;
 
     @Inject
-    SignInComponent component;
-
-    @Inject
     UserManager userManager;
 
     @Inject

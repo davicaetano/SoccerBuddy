@@ -11,6 +11,5 @@ import dagger.Subcomponent;
         }
 )
 public interface HomeComponent {
-
     HomeActivity inject(HomeActivity homeActivity);
 }

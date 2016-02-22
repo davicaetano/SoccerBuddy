@@ -30,15 +30,6 @@ public class UserManager {
         getUserFromPref();
     }
 
-    private void getUserFromPref(){
-        String userGson = pref.getString(USER_PREF_INFO,null);
-        if(userGson == null){
-            user = null;
-        }else{
-            user = gson.fromJson(userGson, User.class);
-        }
-    }
-
     public User getUser(){
         return user;
     }
@@ -49,5 +40,14 @@ public class UserManager {
         SharedPreferences.Editor prefEditor = pref.edit();
         prefEditor.putString(USER_PREF_INFO, userGson);
         prefEditor.commit();
+    }
+
+    private void getUserFromPref(){
+        String userGson = pref.getString(USER_PREF_INFO, null);
+        if(userGson == null){
+            user = null;
+        }else{
+            user = gson.fromJson(userGson, User.class);
+        }
     }
 }

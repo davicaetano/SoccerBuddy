@@ -7,6 +7,8 @@ import com.davicaetano.soccerbuddy.data.user.UserManager;
 import com.davicaetano.soccerbuddy.data.user.UserModule;
 import com.davicaetano.soccerbuddy.data.xmpp.XMPPModule;
 import com.davicaetano.soccerbuddy.data.xmpp.XMPPService;
+import com.davicaetano.soccerbuddy.ui.home.HomeComponent;
+import com.davicaetano.soccerbuddy.ui.home.HomeModule;
 import com.davicaetano.soccerbuddy.ui.signin.SignInComponent;
 import com.davicaetano.soccerbuddy.ui.signin.SignInModule;
 import com.davicaetano.soccerbuddy.ui.splash.SplashComponent;
@@ -37,4 +39,5 @@ public interface AppComponent {
     //subcomponents.
     SplashComponent plus(SplashModule splashModule);
     SignInComponent plus(SignInModule signInModule);
+    HomeComponent plus(HomeModule homeModule);
 }
