@@ -7,10 +7,10 @@ import dagger.Subcomponent;
 @ActivityScope
 @Subcomponent(
         modules = {
-                HomeActivityModule.class
+                HomeModule.class
         }
 )
-public interface HomeActivityComponent {
+public interface HomeComponent {
 
     HomeActivity inject(HomeActivity homeActivity);
 }

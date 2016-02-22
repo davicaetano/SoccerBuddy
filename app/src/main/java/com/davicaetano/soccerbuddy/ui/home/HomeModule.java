@@ -6,10 +6,10 @@ import dagger.Module;
 import dagger.Provides;
 
 @Module
-public class HomeActivityModule {
+public class HomeModule {
     private HomeActivity homeActivity;
 
-    public HomeActivityModule(HomeActivity homeActivity) {
+    public HomeModule(HomeActivity homeActivity) {
         this.homeActivity = homeActivity;
     }
 
@@ -19,7 +19,7 @@ public class HomeActivityModule {
 
     @Provides
     @ActivityScope
-    HomeActivityPresenter provideHomeActivityPresenter(){
-        return new HomeActivityPresenter(homeActivity);
+    HomePresenter provideHomeActivityPresenter(){
+        return new HomePresenter(homeActivity);
     }
 }
