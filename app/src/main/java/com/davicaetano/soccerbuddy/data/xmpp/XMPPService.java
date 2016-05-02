@@ -212,7 +212,7 @@ public class XMPPService extends Service {
             Log.v(TAG, "onLogin");
             xmppApi.onLogin();
 //            sendBroadcast((new Intent(ACTION_PERFORMED)).putExtra(ACTION, ACTION_FLAG_LOGIN_SUCCESS));
-            resendPendingMessageFromDatabase();
+//            resendPendingMessageFromDatabase();
         }
         @Override
         public void onLogout() {

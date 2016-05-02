@@ -52,9 +52,9 @@ import static com.davicaetano.soccerbuddy.utils.Utils.IsInternetConnected;
  */
 public class XMPPHelper {
     private final String TAG = this.getClass().getName();
-    public static String CONFERENCE_NAME = "@conference.54.183.160.87";
+    public static String CONFERENCE_NAME = "@conference.52.53.212.42";
     public static int PORT = 5222;
-    public static String HOST = "54.183.160.87";
+    public static String HOST = "52.53.212.42";
 
     Context context;
 
@@ -71,7 +71,6 @@ public class XMPPHelper {
 
     public XMPPHelper(Context context) {
         this.context = context;
-
         configBuilder = XMPPTCPConnectionConfiguration.builder();
         configBuilder.setUsernameAndPassword("davicaetano", "abc123");
         configBuilder.setServiceName("Smack");
@@ -96,8 +95,7 @@ public class XMPPHelper {
         this.xmppCallBacks = xmppCallBacks;
     }
 
-    // ==========REGISTER ===========
-    // Register creates an account for the user.
+    // Register
 
     public void register(String user, String password) {
             new RegistrationTask().execute(new String[]{user, password});
@@ -156,8 +154,8 @@ public class XMPPHelper {
             super.onPostExecute(result);
             if (result) {
                 xmppCallBacks.onLogin();
-                sendPresencePacket(true);
-                listenForInCommingPacket();
+//                sendPresencePacket(true);
+//                listenForInCommingPacket();
 
 //                //Rejoined the groups after login successful.
 //                String groupsData=sPreferenceManager.getGroupListData();

@@ -1,6 +1,5 @@
 apply plugin: 'com.android.application'
-apply plugin: 'com.neenbedankt.android-apt' //needed for source code generation
-apply plugin: 'com.google.gms.google-services'
+apply plugin: 'com.neenbedankt.android-apt' //(Dagger)needed for source code generation
 
 android {
     compileSdkVersion 23
@@ -9,9 +8,11 @@ android {
     defaultConfig {
         applicationId "com.davicaetano.soccerbuddy"
         minSdkVersion 19
-        targetSdkVersion 23
+        targetSdkVersion 22
         versionCode 1
         versionName "1.0"
+        multiDexEnabled true//(Inserido por Davi)
+
     }
     signingConfigs {
         debug {
@@ -32,6 +33,11 @@ android {
             returnDefaultValues = true
         }
     }
+    packagingOptions {
+        exclude 'META-INF/LICENSE'
+        exclude 'META-INF/LICENSE-FIREBASE.txt'
+        exclude 'META-INF/NOTICE'
+    }
 }
 repositories {
     maven {url "https://jitpack.io"}
@@ -44,14 +50,17 @@ repositories {
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     testCompile 'junit:junit:4.12'
-    compile 'com.android.support:appcompat-v7:23.1.1'
-    compile 'com.google.android.gms:play-services-auth:8.3.0'
+    compile 'com.android.support:appcompat-v7:23.3.0'
+
+    compile 'com.google.android.gms:play-services:8.4.0'
+//    compile 'com.google.android.gms:play-services-plus:8.3.0'
+//    compile 'com.google.android.gms:play-services-auth:8.3.0'
     compile 'com.jakewharton:butterknife:7.0.1'
 
     compile "org.igniterealtime.smack:smack-android:4.1.0"
     compile "org.igniterealtime.smack:smack-tcp:4.1.0"
 
-    compile 'com.facebook.android:facebook-android-sdk:[4,5)'
+//    compile 'com.facebook.android:facebook-android-sdk:[4,5)'
 
     //Dagger
     apt 'com.google.dagger:dagger-compiler:2.0.1' //needed for source code generation
@@ -71,11 +80,15 @@ dependencies {
     //
     compile 'commons-codec:commons-codec:1.5'
 
+    //Firebase
+    compile 'com.firebase:firebase-client-android:2.5.2'
+
     //Para seguranca no smack;
 //    compile "eu.geekplace.java-pinning:java-pinning-jar:1.0.1"
-    compile 'org.thoughtcrime.ssl.pinning:AndroidPinning:1.0.0'
+//    compile 'org.thoughtcrime.ssl.pinning:AndroidPinning:1.0.0'
 
     compile 'com.google.code.gson:gson:2.2.4'
 
 
 }
+apply plugin: 'com.google.gms.google-services'

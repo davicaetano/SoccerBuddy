@@ -1,28 +1,15 @@
 package com.davicaetano.soccerbuddy.ui.signin;
 
+import android.app.ProgressDialog;
 import android.content.Intent;
 import android.os.Bundle;
+import android.widget.Button;
 import android.widget.Toast;
 
 import com.davicaetano.soccerbuddy.CustomApplication;
 import com.davicaetano.soccerbuddy.R;
-import com.davicaetano.soccerbuddy.data.user.User;
 import com.davicaetano.soccerbuddy.ui.BaseActivity;
-import com.davicaetano.soccerbuddy.ui.home.HomeActivity;
-import com.facebook.AccessToken;
-import com.facebook.CallbackManager;
-import com.facebook.FacebookCallback;
-import com.facebook.FacebookException;
-import com.facebook.FacebookSdk;
-import com.facebook.login.LoginResult;
-import com.facebook.login.widget.LoginButton;
-import com.google.android.gms.auth.api.Auth;
-import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
-import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
-import com.google.android.gms.auth.api.signin.GoogleSignInResult;
-import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.SignInButton;
-import com.google.android.gms.common.api.GoogleApiClient;
 
 import javax.inject.Inject;
 
@@ -30,25 +17,14 @@ import butterknife.Bind;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
 
-public class SignInActivity extends BaseActivity implements SignInContract.View,
-        GoogleApiClient.OnConnectionFailedListener{
+public class SignInActivity extends BaseActivity implements SignInContract.View {
     private final String TAG = "SignInActivity";
-    public final int GOOGLE_SIGN_IN = 1;
+    @Inject SignInContract.Presenter presenter;
 
-    @Inject
-    SignInContract.Presenter presenter;
+    @Bind(R.id.write) Button write;
+    @Bind(R.id.signin_button) SignInButton signInButton;
 
-    //Google login
-    private GoogleSignInAccount acct;
-    private GoogleApiClient googleApiClient;
-    private GoogleSignInOptions googleSignInOptions;
-    @Bind(R.id.signin_button) SignInButton googleSignInButton;
-
-    //Facebook login
-    private FacebookCallback<LoginResult> facebookCallBack;
-    private AccessToken facebookAccessToken;
-    private CallbackManager callbackManager;
-    @Bind(R.id.facebook_login_button) LoginButton facebookLoginButton;
+    private ProgressDialog progressDialog;
 
     @Override
     public void setupActivityComponent() {
@@ -60,75 +36,48 @@ public class SignInActivity extends BaseActivity implements SignInContract.View,
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        FacebookSdk.sdkInitialize(getApplicationContext());
         setContentView(R.layout.sign_in);
         ButterKnife.bind(this);
 
-        googleSignInOptions = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-                .requestEmail()
-                .build();
+        signInButton.setSize(SignInButton.SIZE_STANDARD);
+        signInButton.setScopes(presenter.getScopeArray());
 
-        googleApiClient = new GoogleApiClient.Builder(this)
-                .enableAutoManage(this, this)
-                .addApi(Auth.GOOGLE_SIGN_IN_API, googleSignInOptions)
-                .build();
+        progressDialog = new ProgressDialog(this);
+        progressDialog.setTitle("Authenticating");
+        progressDialog.setCancelable(false);
 
-        googleSignInButton.setSize(SignInButton.SIZE_STANDARD);
-        googleSignInButton.setScopes(googleSignInOptions.getScopeArray());
-
-        facebookCallBack = new FacebookCallback<LoginResult>() {
-            @Override
-            public void onSuccess(LoginResult loginResult) {
-                facebookAccessToken = loginResult.getAccessToken();
-            }
-
-            @Override
-            public void onCancel() {
-                // App code
-            }
-
-            @Override
-            public void onError(FacebookException exception) {
-                // App code
-            }
-        };
-        callbackManager = CallbackManager.Factory.create();
-        facebookLoginButton.registerCallback(callbackManager, facebookCallBack);
     }
 
     @OnClick(R.id.signin_button)
-    public void signInButtonOnClick(){
-        Intent signInIntent = Auth.GoogleSignInApi.getSignInIntent(googleApiClient);
-        startActivityForResult(signInIntent, GOOGLE_SIGN_IN);
+    public void onClickSignInButton(){
+        presenter.onClickGoogleSignIn();
+    }
+
+    @OnClick(R.id.write)
+    public void onClickWrite(){
+//        firebase.child("users").child(authData.getUid()).child("name").setValue("Davi");
+//        firebase.child("users").child(authData.getUid()).child("email").setValue(userEmail);
+////        firebase.child("users").updateChildren(new);
+////        firebase.setValue("teste123");
     }
 
     @Override
-    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == GOOGLE_SIGN_IN) {
-            handleSignInResult(data);
-        }
+        presenter.onActivityResult(requestCode, resultCode, data);
     }
 
-    public void handleSignInResult(Intent data) {
-        GoogleSignInResult result = Auth.GoogleSignInApi.getSignInResultFromIntent(data);
-        if (result.isSuccess()) {
-            acct = result.getSignInAccount();
-            User user = new User();
-            user.setEmail(acct.getEmail());
-            user.setEmail(acct.getDisplayName());
-            user.setPictureUrl(acct.getPhotoUrl().toString());
-            user.setLoginMode(User.GOOGLE);
-            presenter.recordUser(user);
-            startActivity(new Intent(this, HomeActivity.class));
-            finish();
-        } else {
-            Toast.makeText(this, "Login not authorized by Google", Toast.LENGTH_LONG).show();
+    @Override
+    public void changeProgressDialog(boolean on) {
+        if(on) {
+            progressDialog.show();
+        }else{
+            progressDialog.hide();
         }
     }
 
     @Override
-    public void onConnectionFailed(ConnectionResult connectionResult) {
-
+    public void showMessage(String message) {
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
     }
 }

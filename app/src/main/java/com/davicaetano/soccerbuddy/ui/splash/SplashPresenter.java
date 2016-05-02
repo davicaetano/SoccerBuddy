@@ -21,7 +21,8 @@ public class SplashPresenter implements SplashContract.Presenter {
 
     @Override
     public boolean hasCachedUser() {
-        return (userManager.getUser() != null);
+//        return (userManager.getUser() != null);
+        return false;
     }
 
     @Override

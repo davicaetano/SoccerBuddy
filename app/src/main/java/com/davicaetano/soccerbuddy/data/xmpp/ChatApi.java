@@ -23,6 +23,12 @@ public class ChatApi {
         this.xmppApi = xmppApi;
     }
 
+    public void setPresenter(HomeContract.Presenter presenter) {
+        this.presenter = presenter;
+    }
+
+    //Presenter methods.
+
     public void getList() {
         xmppApi.getList();
     }
@@ -35,6 +41,8 @@ public class ChatApi {
         xmppApi.disconnect();
     }
 
+    //Callbacks.
+
     public void onLogin() {
         presenter.onLogin();
     }
@@ -43,8 +51,5 @@ public class ChatApi {
         presenter.onListReceived(list);
     }
 
-    public void setPresenter(HomeContract.Presenter presenter) {
-        this.presenter = presenter;
-    }
 
 }

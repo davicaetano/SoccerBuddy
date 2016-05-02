@@ -1,6 +1,8 @@
 package com.davicaetano.soccerbuddy.ui.signin;
 
-import com.davicaetano.soccerbuddy.data.user.User;
+import android.content.Intent;
+
+import com.google.android.gms.common.api.Scope;
 
 /**
  * Created by davicaetano on 2/15/16.
@@ -8,9 +10,20 @@ import com.davicaetano.soccerbuddy.data.user.User;
 public interface SignInContract {
     interface View {
 
+        void changeProgressDialog(boolean on);
+
+        void showMessage(String s);
     }
 
     interface Presenter {
-        void recordUser(User user);
+        void onClickGoogleSignIn();
+
+        void onActivityResult(int requestCode, int resultCode, Intent data);
+
+//        SignInContract.View getView();
+
+        void tokenCallback(String token);
+
+        Scope[] getScopeArray();
     }
 }

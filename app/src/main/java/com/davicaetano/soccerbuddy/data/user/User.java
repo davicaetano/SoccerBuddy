@@ -15,7 +15,6 @@ public class User implements Parcelable{
     private String pictureUrl;
     private String ID;
     private int loginMode;
-
     private boolean isRegistered = false;
 
     //Parceable stuff
@@ -36,6 +35,7 @@ public class User implements Parcelable{
     }
     @Override
     public void writeToParcel(Parcel dest, int flags) {
+        dest.writeString(ID);
         dest.writeString(email);
         dest.writeInt(loginMode);
         dest.writeString(name);
@@ -43,13 +43,13 @@ public class User implements Parcelable{
         dest.writeByte((byte)(isRegistered?1:0));
     }
     public User(Parcel source){
+        this.ID = source.readString();
         this.email = source.readString();
         this.loginMode = source.readInt();
         this.name = source.readString();
         this.pictureUrl = source.readString();
         this.isRegistered = source.readByte() != 0;
     }
-
 
     public User(){
     }

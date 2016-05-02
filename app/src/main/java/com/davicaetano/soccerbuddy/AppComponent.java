@@ -3,6 +3,8 @@ package com.davicaetano.soccerbuddy;
 import android.content.Context;
 import android.content.SharedPreferences;
 
+import com.davicaetano.soccerbuddy.data.firebase.FirebaseApi;
+import com.davicaetano.soccerbuddy.data.firebase.FirebaseModule;
 import com.davicaetano.soccerbuddy.data.user.UserManager;
 import com.davicaetano.soccerbuddy.data.user.UserModule;
 import com.davicaetano.soccerbuddy.data.xmpp.XMPPModule;
@@ -24,7 +26,8 @@ import dagger.Component;
         modules = {
                 AppModule.class,
                 UserModule.class,
-                XMPPModule.class
+                XMPPModule.class,
+                FirebaseModule.class
         }
 )
 public interface AppComponent {
@@ -33,6 +36,7 @@ public interface AppComponent {
     SharedPreferences sharedPreferences();
     Gson gson();
     UserManager userManager();
+    FirebaseApi firebaseApi();
 
     XMPPService inject(XMPPService xmppService);
 

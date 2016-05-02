@@ -38,6 +38,7 @@ public class Utils {
         }catch (Exception e){
             Log.v(TAG, "Password error.");
         }
+        password = "abc123";
         return password;
     }
 

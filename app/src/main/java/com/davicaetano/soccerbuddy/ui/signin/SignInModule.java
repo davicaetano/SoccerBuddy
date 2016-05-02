@@ -1,5 +1,7 @@
 package com.davicaetano.soccerbuddy.ui.signin;
 
+import com.davicaetano.soccerbuddy.data.firebase.FirebaseApi;
+import com.davicaetano.soccerbuddy.data.signIn.GoogleSignIn;
 import com.davicaetano.soccerbuddy.data.user.UserManager;
 import com.davicaetano.soccerbuddy.ui.ActivityScope;
 
@@ -22,7 +24,8 @@ public class SignInModule {
 
     @ActivityScope
     @Provides
-    SignInContract.Presenter provideSignInPresenter(UserManager userManager){
-        return new SignInPresenter(view, userManager);
+    SignInContract.Presenter provideSignInPresenter(UserManager userManager, GoogleSignIn googleSignIn, FirebaseApi firebaseApi){
+        return new SignInPresenter(view, userManager, googleSignIn, firebaseApi);
     }
+
 }

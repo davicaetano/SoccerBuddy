@@ -36,5 +36,4 @@ public class AppModule {
         return new Gson();
     }
 
-
 }

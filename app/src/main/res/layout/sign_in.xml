@@ -18,18 +18,26 @@
         android:id="@+id/signin_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_above="@+id/facebook_login_button"
+        android:layout_below="@+id/imageView"
         android:layout_centerHorizontal="true"
         android:layout_marginBottom="52dp" />
 
-    <com.facebook.login.widget.LoginButton
-        android:id="@+id/facebook_login_button"
+    <Button
+        android:id="@+id/write"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="center_horizontal"
-        android:layout_alignParentBottom="true"
-        android:layout_centerHorizontal="true"
-        android:layout_marginBottom="114dp" />
+        android:text="write"
+        android:layout_below="@+id/signin_button"
+        android:layout_centerHorizontal="true" />
+
+    <!--<com.facebook.login.widget.LoginButton-->
+        <!--android:id="@+id/facebook_login_button"-->
+        <!--android:layout_width="wrap_content"-->
+        <!--android:layout_height="wrap_content"-->
+        <!--android:layout_gravity="center_horizontal"-->
+        <!--android:layout_alignParentBottom="true"-->
+        <!--android:layout_centerHorizontal="true"-->
+        <!--android:layout_marginBottom="114dp" />-->
 
     <TextView
         android:id="@+id/textview_copyright"
@@ -40,6 +48,14 @@
         android:layout_marginBottom="10dp"
         android:layout_marginTop="15dp"
         android:text="@string/splash_copyright" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="New Text"
+        android:id="@+id/authTextView"
+        android:layout_above="@+id/textview_copyright"
+        android:layout_centerHorizontal="true" />
 
 
 </RelativeLayout>
