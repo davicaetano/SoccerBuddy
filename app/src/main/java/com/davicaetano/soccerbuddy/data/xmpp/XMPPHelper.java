@@ -13,6 +13,7 @@ import org.jivesoftware.smack.ConnectionConfiguration;
 import org.jivesoftware.smack.SmackConfiguration;
 import org.jivesoftware.smack.SmackException;
 import org.jivesoftware.smack.StanzaListener;
+import org.jivesoftware.smack.XMPPException;
 import org.jivesoftware.smack.chat.Chat;
 import org.jivesoftware.smack.chat.ChatManager;
 import org.jivesoftware.smack.filter.MessageTypeFilter;
@@ -72,12 +73,12 @@ public class XMPPHelper {
     public XMPPHelper(Context context) {
         this.context = context;
         configBuilder = XMPPTCPConnectionConfiguration.builder();
-        configBuilder.setUsernameAndPassword("davicaetano", "abc123");
-        configBuilder.setServiceName("Smack");
+        configBuilder.setServiceName(HOST);
         configBuilder.setHost(HOST);
         configBuilder.setPort(PORT);
         configBuilder.setConnectTimeout(10000);
         configBuilder.setSecurityMode(ConnectionConfiguration.SecurityMode.required);
+
         try{
             TLSUtils.acceptAllCertificates(configBuilder);
         }catch (NoSuchAlgorithmException e) {
@@ -106,14 +107,23 @@ public class XMPPHelper {
         @Override
         protected Boolean doInBackground(String... params) {
             try {
-                if(connection == null)
+                if(connection == null) {
                     connection = new XMPPTCPConnection(configBuilder.build());
-                if(!connection.isConnected())
+                }
+                if(!connection.isConnected()) {
                     connection.connect();
-                AccountManager.getInstance(connection).createAccount(params[0], params[1], null);
+                }
+                AccountManager accountManager = AccountManager.getInstance(connection);
+                accountManager.createAccount(params[0], params[1]);
+                connection.disconnect();
                 return true;
             } catch (Exception e) {
-                e.printStackTrace();
+                if(e instanceof XMPPException.XMPPErrorException &&
+                        ((XMPPException.XMPPErrorException) e).getXMPPError().toString().equals("XMPPError: conflict - cancel")){
+                    connection.disconnect();//In this case the error is that the user already exists.
+
+                    return true;
+                }
                 exception = e;
             }
             return false;
@@ -138,8 +148,12 @@ public class XMPPHelper {
         @Override
         protected Boolean doInBackground(String... params) {
             try {
-                if(connection == null) connection = new XMPPTCPConnection(configBuilder.build());
-                if(!connection.isConnected()) connection.connect();
+                if(connection == null || !connection.isConnected()){
+                    configBuilder.setUsernameAndPassword(params[0],params[1]);
+                    connection = new XMPPTCPConnection(configBuilder.build());
+                    if(!connection.isConnected()) connection.connect();
+                }
+
                 if(connection.isAuthenticated()) return true;
                 connection.login();
                 return true;
