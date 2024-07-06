@@ -10,6 +10,7 @@ public class ChatActivity extends BaseActivity {
 
     @Override
     public void setupActivityComponent() {
+        // TODO:
 
     }
 }
